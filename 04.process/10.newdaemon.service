@@ -1,0 +1,11 @@
+[Unit]
+Description=Newdaemon for testing
+[Service]
+#ExecStart=/usr/local/bin/10.newdaemon
+ExecStart=/home/educafe/bin/10.newdaemon
+Restart=on-failure
+Type=simple
+[Install]
+WantedBy=multi-user.target
+
+
