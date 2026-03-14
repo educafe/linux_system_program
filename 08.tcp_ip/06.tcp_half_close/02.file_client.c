@@ -1,51 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/socket.h>
 
-#define BUF_SIZE 30
+int main() {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
 
-int main(int argc, char *argv[]){
-	int sockfd, bytes_sent, bytes_recv;
-	FILE *fp;
-	char buf[BUF_SIZE];
-	struct sockaddr_in sockaddr;
-	
-	if(argc!=3) {
-		printf("Usage: %s <IP> <port>\n", argv[0]);
-		exit(1);
-	}
-	
-	fp=fopen("receive.dat", "wb");
-	sockfd=socket(PF_INET, SOCK_STREAM, 0);   
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(9090);
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	memset(&sockaddr, 0, sizeof(sockaddr));
-	sockaddr.sin_family=AF_INET;
-	sockaddr.sin_addr.s_addr=inet_addr(argv[1]);
-	sockaddr.sin_port=htons(atoi(argv[2]));
+    connect(fd, (struct sockaddr *)&addr, sizeof(addr));
 
-	connect(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr));
-	
-	while((bytes_recv=read(sockfd, buf, BUF_SIZE ))!=0)
-		fwrite((void*)buf, 1, bytes_recv, fp);
-	
-	puts("Received file data");
-	fclose(fp);
+    write(fd, "Hello server\n", 13);
+    write(fd, "This is client\n", 15);
 
-	printf("Enter to send message...");
 	getchar();
-	bytes_sent = write(sockfd, "Thank you~~", 12);
-	if(bytes_sent <= 0) perror("write error");
-	else printf("write ok(bytes_sent:%d)!!\n", bytes_sent);
-	
-	printf("Enter to send message...");
-	getchar();
-	bytes_sent = write(sockfd, "Thank you!!", 12);
-	if(bytes_sent <= 0) perror("write error");
-	else printf("write ok(bytes_sent:%d)!!\n", bytes_sent);
+    /* Half close: stop sending */
+    shutdown(fd, SHUT_WR);
 
-	close(sockfd);
-	return 0;
+    printf("Client has sent EOF\n");
+
+    char buf[1024];
+    int n;
+
+    while ((n = read(fd, buf, sizeof(buf))) > 0) {
+        write(STDOUT_FILENO, buf, n);
+    }
+
+    close(fd);
 }
